@@ -71,7 +71,7 @@ app.post("/api/shorten", async (req, res) => {
   }
 });
 // Redirect to long URL
-app.get("/:code", async (req, res) => {
+app.get("/api/stats/:code", async (req, res) => {
   const { code } = req.params;
 
   try {
