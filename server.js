@@ -32,6 +32,7 @@ function generateShortCode() {
 
 // Shorten a URL
 app.post("/api/shorten", async (req, res) => {
+  console.log("Incoming body:", req.body);
   const { longUrl, customAlias, expiryDays } = req.body;
   if (!longUrl) return res.status(400).json({ error: "longUrl is required" });
 
