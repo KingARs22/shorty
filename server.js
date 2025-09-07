@@ -31,7 +31,7 @@ function generateShortCode() {
 }
 
 // Shorten a URL
-app.post("/shorten", async (req, res) => {
+app.post("/api/shorten", async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: "URL is required" });
 
