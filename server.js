@@ -32,23 +32,34 @@ function generateShortCode() {
 
 // Shorten a URL
 app.post("/api/shorten", async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: "URL is required" });
+  const { longUrl, customAlias, expiryDays } = req.body;
+  if (!longUrl) return res.status(400).json({ error: "longUrl is required" });
 
-  const shortCode = generateShortCode();
+  // choose shortCode: custom alias if given, else random
+  const shortCode = customAlias || Math.random().toString(36).substring(2, 8);
 
   try {
-    await pool.query("INSERT INTO urls (short_code, long_url) VALUES ($1, $2)", [
+    // optional expiry logic
+    let expiresAt = null;
+    if (expiryDays) {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiryDays);
+    }
+
+    await pool.query(
+      `INSERT INTO urls (short_code, long_url, expires_at) VALUES ($1, $2, $3)`,
+      [shortCode, longUrl, expiresAt]
+    );
+
+    res.json({
+      shortUrl: `${req.protocol}://${req.headers.host}/${shortCode}`,
       shortCode,
-      url,
-    ]);
-    res.json({ shortUrl: `${req.headers.host}/${shortCode}` });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });
   }
 });
-
 // Redirect to long URL
 app.get("/:code", async (req, res) => {
   const { code } = req.params;
