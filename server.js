@@ -51,6 +51,9 @@ app.post("/api/shorten", async (req, res) => {
     if (expiryDays) {
       expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiryDays);
+    } else {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (30));
     }
 
     await pool.query(
@@ -72,17 +75,31 @@ app.get("/:code", async (req, res) => {
   const { code } = req.params;
 
   try {
-    const result = await pool.query("SELECT long_url FROM urls WHERE short_code = $1", [code]);
+    const result = await pool.query(
+      "SELECT long_url, expires_at FROM urls WHERE short_code = $1",
+      [code]
+    );
 
-    if (result.rows.length > 0) {
-      res.redirect(result.rows[0].long_url);
-    } else {
-      res.status(404).send("URL not found");
+    if (result.rows.length === 0) {
+      return res.status(404).send("URL not found");
     }
+
+    const { long_url, expires_at } = result.rows[0];
+
+    // If expired
+    if (expires_at && new Date(expires_at) < new Date()) {
+      // Delete from DB
+      await pool.query("DELETE FROM urls WHERE short_code = $1", [code]);
+      return res.status(410).send("This short link has expired and has been removed");
+    }
+
+    // Redirect to the original URL
+    res.redirect(long_url);
   } catch (err) {
     console.error(err);
     res.status(500).send("Database error");
   }
 });
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
