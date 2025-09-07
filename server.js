@@ -71,7 +71,7 @@ app.post("/api/shorten", async (req, res) => {
   }
 });
 // Redirect to long URL
-app.get("/api/stats/:code", async (req, res) => {
+app.get("/:code", async (req, res) => {
   const { code } = req.params;
 
   try {
@@ -101,5 +101,33 @@ app.get("/api/stats/:code", async (req, res) => {
   }
 });
 
+app.get("/api/stats/:code", async (req, res) => {
+  const { code } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT short_code, long_url, expires_at FROM urls WHERE short_code = $1",
+      [code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "URL not found" });
+    }
+
+    const { short_code, long_url, expires_at } = result.rows[0];
+    const now = new Date();
+    const expiresIn = expires_at ? Math.max(0, new Date(expires_at) - now) : null;
+
+    res.json({
+      shortCode: short_code,
+      longUrl: long_url,
+      expiresAt: expires_at,
+      expiresIn: expiresIn ? `${Math.ceil(expiresIn / (1000*60*60*24))} days` : null
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
