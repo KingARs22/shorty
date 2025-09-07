@@ -16,13 +16,19 @@ app.use(express.static("public"));
 
 // Ensure table exists
 (async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS urls (
-      id SERIAL PRIMARY KEY,
-      short_code VARCHAR(10) UNIQUE NOT NULL,
-      long_url TEXT NOT NULL
-    );
-  `);
+  try{
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS urls (
+        id SERIAL PRIMARY KEY,
+        short_code VARCHAR(10) UNIQUE NOT NULL,
+        long_url TEXT NOT NULL
+      );
+    `);
+    await pool.query(`ALTER TABLE urls ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;`);
+    console.log("✅ Database schema ensured");
+  } catch (err) {
+    console.error("DB migration error:", err);
+  }
 })();
 
 // Generate random short code
